@@ -49,6 +49,20 @@ Joystick_ Joystick(0x03,JOYSTICK_TYPE_GAMEPAD,
 #define sb_max 1000
 #define sb_min 10
 
+//Flight Correction
+#define correction_delay 120000
+#define correction_t 500
+#define rand_min 10000
+#define rand_max 30000
+
+unsigned long prev_millis = 0;
+int current_wait = 0;
+boolean correcting = false;
+int roll_correction = 0;
+int pitch_correction = 0;
+int throttle_correction = 0;
+int yaw_correction = 0;
+
 void setup() {
   Joystick.setXAxisRange(AXIS_MIN, AXIS_MAX);
   Joystick.setYAxisRange(AXIS_MIN, AXIS_MAX);
@@ -61,6 +75,8 @@ void setup() {
 
   // Initialize Joystick Library
   Joystick.begin();
+  prev_millis = millis();
+  current_wait = correction_delay;
 }
 
 void loop() {
@@ -86,4 +102,34 @@ void loop() {
   } else {
     Joystick.setRzAxis((THROW_MIN + THROW_MAX)/2.0);
   }
+  if (correcting) {
+    correct();
+    if ((millis() - prev_millis) > correction_t) {
+      correcting = false;
+      prev_millis = millis();
+    }
+  } else {
+    if ((millis() - prev_millis) > current_wait) {
+      get_correction();
+      correcting = true;
+      current_wait = random(rand_min, rand_max);
+      prev_millis = millis();
+    }
+  }
 }
+
+void get_correction() {
+  roll_correction = constrain(map(random(3), 0, 2, THROW_MIN, THROW_MAX), THROW_MIN, THROW_MAX);
+  pitch_correction = constrain(map(random(3), 0, 2, THROW_MIN, THROW_MAX), THROW_MIN, THROW_MAX);
+  throttle_correction = constrain(map(random(3), 0, 2, THROW_MIN, THROW_MAX), THROW_MIN, THROW_MAX);
+  yaw_correction = constrain(map(random(3), 0, 2, THROW_MIN, THROW_MAX), THROW_MIN, THROW_MAX);
+}
+
+void correct() {
+  Joystick.setXAxis(roll_correction);
+  Joystick.setYAxis(pitch_correction);
+  Joystick.setZAxis(throttle_correction);
+  Joystick.setRxAxis(yaw_correction);
+}
+
+//4/1/2021
